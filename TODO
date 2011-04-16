@@ -1,0 +1,6 @@
+TODOs before first milestone (0.1.0):
+* improve and test source file layout
+* fix all XXX's
+* provide an import mechanism so the user has to type less Namespace:: stuff
+* provide an example
+* improve README, provide a LICENSE, start CHANGELOG
