@@ -1,6 +1,3 @@
-require 'is_summable'
-require 'has_scalars'
-
 module LibBracket
   module LinearChild
     def treat_linear_child(key)

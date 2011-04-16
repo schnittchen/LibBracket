@@ -1,6 +1,3 @@
-require 'helpers'
-require 'knowledgebase'
-
 module LibBracket
   
   class Term

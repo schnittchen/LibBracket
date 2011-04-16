@@ -1,5 +1,3 @@
-require 'linear_child'
-
 module LibBracket
   class InnerProduct < CompositeTerm
     include LinearChild

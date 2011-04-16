@@ -1,6 +1,3 @@
-require 'atom'
-require 'compositeterm'
-
 module LibBracket
   class One < NonCompositeTerm
     CHash.register_realm self

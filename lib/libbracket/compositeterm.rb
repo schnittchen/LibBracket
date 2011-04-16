@@ -1,5 +1,3 @@
-require 'term'
-
 module LibBracket
   class ChildrenArray < Array
     alias_method :ordered_values, :clone

@@ -1,5 +1,4 @@
 module LibBracket
-  
   module Virtual
     module ClassMethods
       def virtual(sym)

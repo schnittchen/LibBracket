@@ -1,6 +1,3 @@
-require 'term'
-require 'chash'
-
 module LibBracket
   class NonCompositeTerm < Term
     virtual :chash_realm
