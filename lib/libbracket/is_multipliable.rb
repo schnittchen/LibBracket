@@ -1,3 +1,5 @@
+require 'libbracket/is_summable'
+
 module LibBracket
   class One < NonCompositeTerm
     CHash.register_realm self

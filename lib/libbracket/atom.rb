@@ -17,7 +17,11 @@ module LibBracket
     
     attr_reader :name
     
+    @@registry = []
+    
     def initialize(domain, name)
+      raise "Already have an atom by that name" if @@registry.include? name
+      @@registry << name
       @name = name #need to set this first!
       super domain
     end
@@ -30,13 +34,9 @@ module LibBracket
       return [@name]
     end
     
-    @registry = []
     
     class << self
       def from_domain_and_name(domain, name)
-        #XXX move this check into initialize!
-        raise "Already have an atom by that name" if @registry.include? name
-        @registry << name
         new domain, name
       end
     end

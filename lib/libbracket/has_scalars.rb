@@ -1,3 +1,5 @@
+require 'libbracket/is_summable'
+
 module LibBracket
   class ScalarMultiple < CompositeTerm
     def initialize(scalar, other)
