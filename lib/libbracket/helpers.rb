@@ -7,15 +7,6 @@ module LibBracket
           raise "virtual method called!"
         end
       end
-      
-      #XXX remove debugging code before check-in!
-      def debug_virtual(sym)
-        self.send(:define_method, sym) do
-          eigen = class << self; self; end
-          debugger
-          raise "virtual method called!"
-        end
-      end
     end
     
     def self.included(cls)
