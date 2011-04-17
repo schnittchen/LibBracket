@@ -28,6 +28,7 @@ module LibBracket
     virtual :chash_ctor_args
     
     include Comparable
+    alias_method :eql?, :== #used by hash lookup!
     
     def <=>(other)
       return @chash <=> other.chash

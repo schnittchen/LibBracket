@@ -21,7 +21,6 @@ module LibBracket
       raise "Using unregistered realm!" unless realm
       @realmidx, @attributes = realm, attribute_ary
       @children = children ? children.ordered_values : []
-      freeze
     end
     
     def <=>(other)
