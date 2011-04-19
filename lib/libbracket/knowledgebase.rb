@@ -5,6 +5,7 @@ module LibBracket
       cterm = KnowledgeBase.without_any { term.canonicalize_and_replace }
       raise "Term to replace must be canonical!" unless term == cterm
       store cterm, repterm
+      return self
     end
     
     alias_method :replacement_for, :[]
