@@ -5,6 +5,12 @@ module LibBracket
     
     attr_reader :domain, :chash, :replacement_cookie
     
+    def self.ancestors_after_term
+      ancestors.take_while do |mod|
+        mod != Term
+      end.reverse
+    end
+    
     def initialize(domain)
       @domain = domain #sometimes needed for chash calculation
       @chash = CHash.new *chash_ctor_args
@@ -12,9 +18,7 @@ module LibBracket
       
       extend domain if domain
       
-      self.class.ancestors.take_while do |mod|
-        mod != Term
-      end.reverse.each do |mod|
+      self.class.ancestors_after_term.each do |mod|
         extend mod.const_get "SpecificMethods" if mod.const_defined? "SpecificMethods"
       end
     end

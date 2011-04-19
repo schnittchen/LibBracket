@@ -1,3 +1,5 @@
+require 'libbracket/state_machine_stack'
+
 module LibBracket
   class ChildrenArray < Array
     alias_method :ordered_values, :clone
@@ -34,10 +36,17 @@ module LibBracket
     STATE_CANONICAL_CHILDREN = :state_canonical_children
     STATE_CANONICAL = :state_canonical
     
+    attr_reader :canonicalization_stack
+    
     def initialize(domain, children)
       @children = children #need to set this first!
       super domain
-      @cstate = STATE_GENERAL
+      @canonicalization_stack = compute_cstack
+    end
+    
+    def compute_cstack #XXX for now
+      result = CanonicalizationStack.new
+      result << compute_cfragment
     end
     
     def primitive
@@ -55,7 +64,7 @@ module LibBracket
     
     def value_changed
       super
-      @cstate = STATE_GENERAL
+      @canonicalization_stack = compute_cstack
     end
     
     def clone_with_children(children)
@@ -65,20 +74,40 @@ module LibBracket
     end
     
     def canonical?
-      @cstate == STATE_CANONICAL
+      @canonicalization_stack.canonical?
+    end
+    
+    def compute_cfragment #XXX for now
+      #machine[machine[:__last_state]] = [msym, to_state]
+      result = CanonicalizationFragment.new
+      state = STATE_GENERAL
+      machine = self.class._machine
+      while (msym, to_state = machine[state]) and msym
+        result.declare_step msym if msym
+        state = to_state
+      end
+      return result
     end
     
     #return self or term to continue with instead
     def canonicalization_advance
-      msym, nstate = self.class._machine[@cstate]
-      if msym
-        term = __send__ msym
-        return term if term
-      else
-        nstate = STATE_CANONICAL
+      term = @canonicalization_stack.try_advance do |msym|
+        __send__ msym
       end
-      @cstate = nstate
-      return self
+      
+      return self unless term
+      return term
+      
+      
+#       msym, nstate = self.class._machine[@cstate]
+#       if msym
+#         term = __send__ msym
+#         return term if term
+#       else
+#         nstate = STATE_CANONICAL
+#       end
+#       @cstate = nstate
+#       return self
     end
     
     class << self
