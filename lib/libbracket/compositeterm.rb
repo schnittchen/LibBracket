@@ -105,27 +105,6 @@ module LibBracket
       return result
     end
     
-    #return self or term to continue with instead
-    def canonicalization_advance
-      term = @canonicalization_stack.try_advance do |msym|
-        __send__ msym
-      end
-      
-      return self unless term
-      return term
-      
-      
-#       msym, nstate = self.class._machine[@cstate]
-#       if msym
-#         term = __send__ msym
-#         return term if term
-#       else
-#         nstate = STATE_CANONICAL
-#       end
-#       @cstate = nstate
-#       return self
-    end
-    
     class << self
       #Usually, we begin with canonicalization.
       #Same as next_cstep :cchildren, STATE_CANONICAL_CHILDREN
