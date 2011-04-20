@@ -34,7 +34,6 @@ module LibBracket
       return [@name]
     end
     
-    
     class << self
       def from_domain_and_name(domain, name)
         new domain, name

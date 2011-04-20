@@ -46,20 +46,68 @@ module LibBracket
     virtual :canonicalization_advance #will only be called on term if not canonical?
     
     def canonicalize_and_replace
-      term = self
-      loop do
-        if term.canonical?
-          cookie = term.replacement_cookie
-          return term if KnowledgeBase.superseeds_cookie cookie
-          replaced = KnowledgeBase.replacement_for term
-          if replaced
-            term = replaced
-          else
-            KnowledgeBase.merge_cookie cookie #mark term as having survived replacements
-            return term
+      term, replaced = to_canonical_replaced?
+      return term
+    end
+    
+    #returns [newterm, replaced flag].
+    #This is the base implementation for the case of absence of children.
+    def send_tcr_to_children
+      return [nil, false]
+    end
+    
+    @@must_not_replace = false #global flag to abort if logic error:
+    #steps on a canonicalization stack must never call to_canonical_replaced
+    
+    #return values: [term, true or false]
+    def to_canonical_replaced?
+      #reason for this: to_canonical_replaced? might do KnowledgeBase replacements somewhere deep inside,
+      #but this breaks with an optimization: we save terms produced by a canonicalization step on the
+      #term-wise canonicalization stack. Terms saved there must not have gone through a KnowledgeBase
+      #replacement.
+      raise "A canonicalization step of a term must never call :to_canonical_replaced" if @@must_not_replace
+      
+      #do not traverse tree if not necessary
+      return [self, false] if canonical? and KnowledgeBase.superseeds_cookie @replacement_cookie
+
+      replaced = false
+      current = self
+      while true
+        term, rep = current.send_tcr_to_children
+        if term
+          replaced |= rep
+          current = term
+          #next #can we just go on? i.e. avoid send_tcr_to_children
+        end
+        
+        if !current.canonical?
+          begin
+            @@must_not_replace = true #see beginning of method
+            term = current.canonicalization_stack.work do |msym|
+              current.__send__ msym
+              #work will record a term result. this is now safe because we can be sure t_c_r? will
+              #never be called inside, no replacement can have happened!
+            end
+          ensure
+            @@must_not_replace = false
           end
+          
+          if term
+            current = term
+            next
+          end
+        end
+        
+        
+        cookie = current.replacement_cookie
+        return [current, replaced]  if KnowledgeBase.superseeds_cookie cookie
+        term = KnowledgeBase.replacement_for current
+        if term
+          replaced = true
+          current = term
         else
-          term = term.canonicalization_advance
+          KnowledgeBase.merge_cookie cookie #mark term as having survived replacements
+          return [current, replaced]
         end
       end
     end

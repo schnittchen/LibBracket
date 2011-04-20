@@ -33,7 +33,8 @@ module LibBracket
     attr_reader :children
     
     STATE_GENERAL = :state_general #initial state
-    STATE_CANONICAL_CHILDREN = :state_canonical_children
+    STATE_CANONICAL_CHILDREN = STATE_GENERAL #XXX quickfix
+#    STATE_CANONICAL_CHILDREN = :state_canonical_children
     STATE_CANONICAL = :state_canonical
     
     attr_reader :canonicalization_stack
@@ -44,17 +45,27 @@ module LibBracket
       @canonicalization_stack = compute_cstack
     end
     
-    def compute_cstack #XXX for now
-      result = CanonicalizationStack.new
-      result << compute_cfragment
-    end
-    
     def primitive
       return self.class #reasonable default
     end
     
     def chash_ctor_args
       return [CompositeTerm, [primitive.to_s], @children]
+    end
+    
+    def send_tcr_to_children
+      cdren = @children.clone
+      unchanged, replaced = true, false
+      cdren.map! do |child|
+        newchild, rep = child.to_canonical_replaced?
+        if !newchild.equal? child
+          unchanged = false
+          replaced |= rep
+        end
+        newchild
+      end
+      return [nil, false] if unchanged
+      return [clone_with_children(cdren), replaced]
     end
     
     def children=(cdren)
@@ -75,6 +86,11 @@ module LibBracket
     
     def canonical?
       @canonicalization_stack.canonical?
+    end
+    
+    def compute_cstack #XXX for now
+      result = CanonicalizationStack.new
+      result << compute_cfragment
     end
     
     def compute_cfragment #XXX for now
@@ -114,7 +130,7 @@ module LibBracket
       #Usually, we begin with canonicalization.
       #Same as next_cstep :cchildren, STATE_CANONICAL_CHILDREN
       def canonicalize_children_first
-        next_cstep :cchildren, STATE_CANONICAL_CHILDREN
+        # next_cstep :cchildren, STATE_CANONICAL_CHILDREN #XXX disabled
       end
       
       def next_cstep(msym, to_state)
