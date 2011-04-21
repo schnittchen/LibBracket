@@ -77,7 +77,6 @@ module LibBracket
         if term
           replaced |= rep
           current = term
-          #next #can we just go on? i.e. avoid send_tcr_to_children
         end
         
         if !current.canonical?
