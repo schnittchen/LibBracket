@@ -3,33 +3,47 @@ module LibBracket
   class Term
     include Virtual
     
-    attr_reader :domain, :chash, :replacement_cookie
+    attr_reader :domain, :primitive, :chash, :replacement_cookie, :cstack
     
-    def self.ancestors_after_term
-      ancestors.take_while do |mod|
-        mod != Term
-      end.reverse
-    end
-    
-    def initialize(domain)
-      @domain = domain #sometimes needed for chash calculation
-      @chash = CHash.new *chash_ctor_args
-      @replacement_cookie = KnowledgeBase.virgin_cookie
+    class << self
+      private :new
       
-      extend domain if domain
-      
-      self.class.ancestors_after_term.each do |mod|
-        extend mod.const_get "SpecificMethods" if mod.const_defined? "SpecificMethods"
+      def construct(prim, dom, cdren = nil)
+        #XXX fetch blueprint term object from cache, or construct and cache
+        result = bp.clone
+        result.provide_children cdren
       end
     end
     
-    #effective term value changed: reset some internal state
-    def value_changed
-      @replacement_cookie = KnowledgeBase.virgin_cookie #reset cookie
-      @chash = CHash.new *chash_ctor_args
+    def initialize(prim, dom)
+      @primitive, @domain = prim, dom
+      extend dom
+      extend prim
+      
+      @cstack = CanonicalizationStack.new
+      init_primitive
+      init_domain
+      init_value
     end
     
-    virtual :chash_ctor_args
+    def initialize_copy(other)
+      @cstack = other.cstack.clone
+    end
+    
+    def init_primitive
+    end
+    
+    def init_domain
+    end
+    
+    def init_primitive_value
+    end
+
+    #override to set chash!
+    def provide_children(cdren)
+      @replacement_cookie = KnowledgeBase.virgin_cookie
+      @children = cdren if cdren
+    end
     
     include Comparable
     alias_method :eql?, :== #used by hash lookup!
@@ -43,16 +57,12 @@ module LibBracket
     end
     
     virtual :canonical?
+    #returns [newterm, replaced flag].
+    virtual :send_tcr_to_children
     
     def canonicalize_and_replace
       term, replaced = to_canonical_replaced?
       return term
-    end
-    
-    #returns [newterm, replaced flag].
-    #This is the base implementation for the case of absence of children.
-    def send_tcr_to_children
-      return [nil, false]
     end
     
     @@must_not_replace = false #global flag to abort if logic error:
@@ -118,4 +128,49 @@ module LibBracket
       render IN_BRACKETS
     end
   end
+  
+  module PrimitiveWithoutChildren
+    virtual :chash_realm
+    virtual :chash_attributes
+    
+    def canonical?
+      true
+    end
+    
+    def send_tcr_to_children
+      return [nil, false]
+    end
+    
+    def provide_children(cdren)
+      super
+      @chash = CHash.new chash_realm, chash_attributes, nil
+    end
+  end
+  
+  module PrimitiveWithChildren
+    def canonical?
+      @cstack.canonical?
+    end
+    
+    def send_tcr_to_children #XXX
+      cdren = @children.clone
+      unchanged, replaced = true, false
+      cdren.map! do |child|
+        newchild, rep = child.to_canonical_replaced?
+        if !newchild.equal? child
+          unchanged = false
+          replaced |= rep
+        end
+        newchild
+      end
+      return [nil, false] if unchanged
+      return [Term.construct(@primitive, @domain, cdren), replaced]
+    end
+    
+    def provide_children(cdren)
+      super
+      @chash = CHash.new CompositeTerm, [primitive.to_s], cdren
+    end
+  end
+  
 end
