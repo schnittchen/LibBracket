@@ -1,30 +1,8 @@
 module LibBracket
-  class NonCompositeTerm < Term
-    virtual :chash_realm
-    virtual :chash_attributes
+  module Atom
+    include PrimitiveWithoutChildren
     
-    def chash_ctor_args
-      return [chash_realm, chash_attributes, nil]
-    end
-    
-    def canonical?
-      true
-    end
-  end
-  
-  class Atom < NonCompositeTerm
-    CHash.register_realm self #in accordance with chash_realm base definition
-    
-    attr_reader :name
-    
-    @@registry = []
-    
-    def initialize(domain, name)
-      raise "Already have an atom by that name" if @@registry.include? name
-      @@registry << name
-      @name = name #need to set this first!
-      super domain
-    end
+    CHash.register_realm self
     
     def chash_realm
       Atom
@@ -34,10 +12,14 @@ module LibBracket
       return [@name]
     end
     
-    class << self
-      def from_domain_and_name(domain, name)
-        new domain, name
-      end
+    def provide_contents(cdren, params)
+      super
+      @name = params[:name]
+    end
+    
+    def self.from_name_and_domain(name, domain)
+      #XXX registry as a safety feature
+      Term.construct Atom, domain, nil, { :name => name }
     end
     
     def render(rctxt)
