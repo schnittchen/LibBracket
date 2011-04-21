@@ -43,7 +43,6 @@ module LibBracket
     end
     
     virtual :canonical?
-    virtual :canonicalization_advance #will only be called on term if not canonical?
     
     def canonicalize_and_replace
       term, replaced = to_canonical_replaced?
