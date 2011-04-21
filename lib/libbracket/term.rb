@@ -8,10 +8,10 @@ module LibBracket
     class << self
       private :new
       
-      def construct(prim, dom, cdren = nil)
+      def construct(prim, dom, cdren = nil, params = {})
         #XXX fetch blueprint term object from cache, or construct and cache
         result = bp.clone
-        result.provide_children cdren
+        result.provide_contents cdren, params
       end
     end
     
@@ -40,7 +40,7 @@ module LibBracket
     end
 
     #override to set chash!
-    def provide_children(cdren)
+    def provide_contents(cdren, params)
       @replacement_cookie = KnowledgeBase.virgin_cookie
       @children = cdren if cdren
     end
@@ -141,13 +141,15 @@ module LibBracket
       return [nil, false]
     end
     
-    def provide_children(cdren)
+    def provide_contents(cdren, params)
       super
       @chash = CHash.new chash_realm, chash_attributes, nil
     end
   end
   
   module PrimitiveWithChildren
+    CHash.register_realm self
+    
     def canonical?
       @cstack.canonical?
     end
@@ -167,10 +169,9 @@ module LibBracket
       return [Term.construct(@primitive, @domain, cdren), replaced]
     end
     
-    def provide_children(cdren)
+    def provide_contents(cdren, params)
       super
-      @chash = CHash.new CompositeTerm, [primitive.to_s], cdren
+      @chash = CHash.new PrimitiveWithChildren, [primitive.to_s], cdren
     end
   end
-  
 end
