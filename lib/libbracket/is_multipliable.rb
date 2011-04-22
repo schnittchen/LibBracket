@@ -1,18 +1,29 @@
 require 'libbracket/is_summable'
 
 module LibBracket
-  class One < NonCompositeTerm
-    CHash.register_realm self
+  module One
+    include PrimitiveWithoutChildren
     
+    CHash.register_realm self
+
     def chash_realm
       One
     end
     
     def chash_attributes
-      return [@domain]
+      return [@domain.to_s]
     end
     
-    module SpecificMethods
+    def self.for_domain(dom)
+      Term.construct One, dom
+    end
+    
+    def init_value
+      super
+      extend ValueMethods
+    end
+    
+    module ValueMethods
       def one?
         true
       end
@@ -23,21 +34,27 @@ module LibBracket
     end
   end
   
-  class Product < CompositeTerm
-    def initialize(*factors)
-      raise "Need at least one factor" if factors.empty?
-      super factors[0].domain, ChildrenArray.new.replace(factors)
+  module Product
+    include PrimitiveWithChildren
+    
+    def self.from_children(cdren)
+      raise "Product needs at least one factor!" if cdren.empty?
+      return Term.construct Product, cdren[0].domain, cdren
     end
     
-    STATE_DISTRIBUTED = :state_distributed
-    STATE_PRODUCTS_MERGED = :state_products_merged
-    STATE_FILTERED_AND_SORTED = :state_filtered_and_sorted
+    def self.from_factors(*factors)
+      raise "Need at least one factor" if factors.empty?
+      return from_children ChildrenArray.new.replace(factors)
+    end
     
-    canonicalize_children_first
-    next_cstep :cdistribute, STATE_DISTRIBUTED
-    next_cstep :cmerge_products, STATE_PRODUCTS_MERGED
-    next_cstep :cfilter_and_sort, STATE_FILTERED_AND_SORTED
-    canonical_at STATE_FILTERED_AND_SORTED
+    CFRAGMENT = CanonicalizationFragment.new
+    CFRAGMENT.declare_step :cdistribute
+    CFRAGMENT.declare_step :cmerge_products
+    CFRAGMENT.declare_step :cfilter_and_sort
+    
+    def init_primitive
+      @cstack << CFRAGMENT
+    end
     
     def cdistribute
       @children.each_with_index do |child, idx|
@@ -45,9 +62,9 @@ module LibBracket
           summands = child.children.collect do |summand|
             factors = @children[0...idx] << summand
             factors += @children[idx+1..-1]
-            clone_with_children ChildrenArray.new.replace(factors)
+            Product.from_children ChildrenArray.new.replace(factors)
           end
-          return Sum.new *summands
+          return Sum.from_summands *summands
         end
       end
       return nil
@@ -65,12 +82,12 @@ module LibBracket
         end
       end
       return nil if unchanged
-      return clone_with_children new_children
+      return Product.from_children new_children
     end
     
     def cfilter_and_sort
-      return @domain::ZERO if @children.any? { |child| child.zero? }
-      new_children = @children.reject { |term| term.one? }
+      return @domain::ZERO if @children.any? &:zero?
+      new_children = @children.reject &:one?
       case new_children.length
       when 0
         return @domain::ONE
@@ -79,30 +96,38 @@ module LibBracket
       else
         new_children.sort! if @domain.multiplication_commutes?
         return nil if new_children == @children
-        return clone_with_children ChildrenArray.new.replace(new_children)
+        return Product.from_children ChildrenArray.new.replace(new_children)
       end
     end
     
     def render(rctxt)
+      return super unless @children.length >= 2
       inner = @children.collect { |child| child.render MUL }
       return OperatorBinding.bracket_if_needed inner.join("*"), rctxt, MUL
     end
   end
   
   module IsMultipliable
+    include Domain
+    
     def one?
       false
     end
     
     def *(other)
-      return Product.new self, other
+      return Product.from_factors self, other
     end
     
     module DomainMethods
+      #return false as the default,
+      #include MultiplicationCommutes after IsMultipliable if not desired
       def multiplication_commutes?
         false
       end
       
+      #construct One term as late as possible:
+      #domain module might include more modules after IsMultipliable, these would not be available
+      #for One.for_domain at IsMultipliable.included run time
       def const_missing(sym)
         return super unless sym == :ONE
         const_set :ONE, One.new(self)
