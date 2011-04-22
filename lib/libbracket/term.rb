@@ -1,5 +1,10 @@
 module LibBracket
   
+  module Domain
+    #is is nice for understanding the code while reading to
+    #have this included into every domain module
+  end
+  
   class Term
     include Virtual
     
@@ -150,11 +155,13 @@ module LibBracket
   module PrimitiveWithChildren
     CHash.register_realm self
     
+    attr_reader :children
+    
     def canonical?
       @cstack.canonical?
     end
     
-    def send_tcr_to_children #XXX
+    def send_tcr_to_children
       cdren = @children.clone
       unchanged, replaced = true, false
       cdren.map! do |child|
@@ -172,6 +179,14 @@ module LibBracket
     def provide_contents(cdren, params)
       super
       @chash = CHash.new PrimitiveWithChildren, [primitive.to_s], cdren
+    end
+    
+    #default implementation
+    def render(rctxt)
+      return "{#{@primitive}}" if @children.empty?
+      inner = @children.clone.map! { |child| child.render IN_BRACKETS }
+      inner = inner.to_a.collect { |k, v| "#{k} => #{v}" } if inner.is_a? ChildrenHash
+      return "{#{@primitive} #{inner.join ", "}}"
     end
   end
 end
