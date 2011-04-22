@@ -25,6 +25,9 @@ module LibBracket
       end
     end
   end
+end
+__END__
+#disable the rest for now
   
   #A term with children nodes and a canonicalization state machine
   class CompositeTerm < Term
