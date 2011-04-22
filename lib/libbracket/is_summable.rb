@@ -1,16 +1,27 @@
 module LibBracket
-  class Zero < NonCompositeTerm
-    CHash.register_realm self #in accordance with chash_realm base definition
+  module Zero
+    include PrimitiveWithoutChildren
+    
+    CHash.register_realm self
     
     def chash_realm
       Zero
     end
     
     def chash_attributes
-      return [@domain]
+      return [@domain.to_s]
     end
     
-    module SpecificMethods
+    def self.for_domain(dom)
+      Term.construct Zero, dom
+    end
+    
+    def init_value
+      super
+      extend ValueMethods
+    end
+    
+    module ValueMethods
       def zero?
         true
       end
@@ -21,19 +32,26 @@ module LibBracket
     end
   end
   
-  class Sum < CompositeTerm
-    def initialize(*summands)
-      raise "Need at least one summand!" if summands.empty?
-      super summands[0].domain, ChildrenArray.new.replace(summands)
+  module Sum
+    include PrimitiveWithChildren
+    
+    #cdren must not be empty
+    def self.from_children(cdren)
+      raise "Sum needs at least one summand!" if cdren.empty?
+      return Term.construct Sum, cdren[0].domain, cdren
     end
     
-    STATE_SUMS_MERGED = :state_sums_merged
-    STATE_FILTERED_AND_SORTED = :state_filtered_and_sorted
+    def self.from_summands(*summands)
+      return from_children ChildrenArray.new.replace(summands)
+    end
     
-    canonicalize_children_first
-    next_cstep :cmerge_sums, STATE_SUMS_MERGED
-    next_cstep :cfilter_and_sort, STATE_FILTERED_AND_SORTED
-    canonical_at STATE_FILTERED_AND_SORTED
+    CFRAGMENT = CanonicalizationFragment.new
+    CFRAGMENT.declare_step :cmerge_sums
+    CFRAGMENT.declare_step :cfilter_and_sort
+    
+    def init_primitive
+      @cstack << CFRAGMENT
+    end
     
     def cmerge_sums
       new_children = ChildrenArray.new
@@ -47,11 +65,11 @@ module LibBracket
         end
       end
       return nil if unchanged
-      return clone_with_children new_children
+      return Sum.from_children new_children
     end
     
     def cfilter_and_sort
-      new_children = @children.sort.reject { |term| term.zero? }
+      new_children = @children.sort.reject &:zero?
       return nil if new_children.length >= 2 && new_children == @children
       
       case new_children.length
@@ -60,31 +78,35 @@ module LibBracket
       when 1
         return new_children[0]
       else
-        return clone_with_children ChildrenArray.new.replace(new_children)
+        return Sum.from_children ChildrenArray.new.replace(new_children)
       end
     end
     
     def render(rctxt)
+      return super unless @children.length >= 2
       inner = @children.collect { |child| child.render PLUS }
       return OperatorBinding.bracket_if_needed inner.join(" + "), rctxt, PLUS
     end
   end
   
   module IsSummable
+    include Domain
+    
     def zero?
       false
     end
     
     def +(other)
-      return Sum.new self, other
+      return Sum.from_summands self, other
     end
     
     module DomainMethods
-      #define ZERO as late as possible:
-      #domain might include more modules which zero object wants as well
+      #construct Zero term as late as possible:
+      #domain module might include more modules after IsSummable, these would not be available
+      #for Zero.for_domain at IsSummable.included run time
       def const_missing(sym)
         return super unless sym == :ZERO
-        const_set :ZERO, Zero.new(self)
+        const_set :ZERO, Zero.for_domain(self)
       end
     end
     
