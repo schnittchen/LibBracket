@@ -7,14 +7,15 @@ module LibBracket
         summands = child.children.collect do |term|
           cdren = @children.clone
           cdren[key] = term
-          clone_with_children cdren
+          Term.construct @primitive, @domain, cdren
         end
-        return Sum.new *summands
+        return Sum.from_summands *summands
       end
       if child.is_a? ScalarMultiple
         cdren = @children.clone
         cdren[key] = child.other
-        return ScalarMultiple.from_scalar_and_other child.scalar, clone_with_children(cdren)
+        other = Term.construct @primitive, @domain, cdren
+        return ScalarMultiple.from_scalar_and_other child.scalar, other
       end
       return nil
     end

@@ -1,23 +1,27 @@
 require 'libbracket/linear_child'
 
 module LibBracket
-  class InnerProduct < CompositeTerm
+  module InnerProduct
+    include PrimitiveWithChildren
     include LinearChild
+    
+    def self.from_domain_and_children(domain, cdren)
+      return Term.construct InnerProduct, domain, cdren
+    end
     
     def self.from_domain_and_terms(domain, left, right)
       cdren = ChildrenHash.new.replace({ :left => left, :right => right })
-      new domain, cdren
+      return from_domain_and_children domain, cdren
     end
     
-    STATE_LEFT_TREATED = :state_left_treated
-    STATE_RIGHT_TREATED = :state_right_treated
-    STATE_ORDERED = :state_ordered
+    CFRAGMENT = CanonicalizationFragment.new
+    CFRAGMENT.declare_step :ctreat_left
+    CFRAGMENT.declare_step :ctreat_right
+    CFRAGMENT.declare_step :corder
     
-    canonicalize_children_first
-    next_cstep :ctreat_left, STATE_LEFT_TREATED
-    next_cstep :ctreat_right, STATE_RIGHT_TREATED
-    next_cstep :corder, STATE_ORDERED
-    canonical_at STATE_ORDERED
+    def init_primitive
+      @cstack << CFRAGMENT
+    end
     
     def ctreat_left
       return treat_linear_child :left
@@ -31,17 +35,18 @@ module LibBracket
       cdren = [:left, :right].zip @children.values.sort
       cdren = ChildrenHash.new.replace Hash[*cdren.reduce(:+)]
       return nil if cdren == @children
-      return clone_with_children cdren
+      return InnerProduct.from_domain_and_children @domain, cdren
     end
     
     def render(rctxt)
-      left, right = @children[:left], @children[:right]
-      return "<#{left.render IN_BRACKETS}, #{right.render IN_BRACKETS}>"
+      inner = [:left, :right].collect { |key| @children[key].render IN_BRACKETS }
+      return "<#{inner.join ", "}>"
     end
   end
   
   module HasInnerProduct
     def inner_product_with(term)
+      #call domain_of_inner_product inside your domain module to have INNER_PRODUCT_DOMAIN defined
       return InnerProduct.from_domain_and_terms @domain::INNER_PRODUCT_DOMAIN, self, term
     end
     
