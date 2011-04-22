@@ -90,8 +90,6 @@ module LibBracket
   end
   
   module IsSummable
-    include Domain
-    
     def zero?
       false
     end

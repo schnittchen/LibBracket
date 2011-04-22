@@ -1,10 +1,5 @@
 module LibBracket
   
-  module Domain
-    #is is nice for understanding the code while reading to
-    #have this included into every domain module
-  end
-  
   class Term
     include Virtual
     

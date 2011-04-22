@@ -108,8 +108,6 @@ module LibBracket
   end
   
   module IsMultipliable
-    include Domain
-    
     def one?
       false
     end
