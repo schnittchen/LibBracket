@@ -13,13 +13,17 @@ module LibBracket
     end
     
     def provide_contents(cdren, params)
-      super
       @name = params[:name]
+      super
     end
     
-    def self.from_name_and_domain(name, domain)
+    def self.from_primitive_and_domain_and_name(prim, dom, name)
       #XXX registry as a safety feature
-      Term.construct Atom, domain, nil, { :name => name }
+      Term.construct prim, dom, nil, { :name => name }
+    end
+    
+    def self.from_domain_and_name(domain, name)
+      return from_primitive_and_domain_and_name Atom, domain, name
     end
     
     def render(rctxt)

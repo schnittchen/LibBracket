@@ -23,6 +23,10 @@ module LibBracket
     CFRAGMENT.declare_step :cmerge_multiples
     CFRAGMENT.declare_step :ccheck_one_and_zero
     
+    def init_primitive
+      @cstack << CFRAGMENT
+    end
+    
     def cdistribute_scalar
       s, o = scalar, other
       return nil unless s.is_a? Sum
@@ -56,8 +60,10 @@ module LibBracket
       return nil
     end
     
+    include OperatorBinding::ContextEnumerations
+    
     def render(rctxt)
-      inner = [other.render MUL, scalar.render MUL]
+      inner = [other.render(MUL), scalar.render(MUL)]
       inner.reverse! if @domain.include? HasScalarsFromRight
       return OperatorBinding.bracket_if_needed inner.join("*"), rctxt, MUL
     end

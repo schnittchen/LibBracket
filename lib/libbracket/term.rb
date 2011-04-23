@@ -8,10 +8,16 @@ module LibBracket
     class << self
       private :new
       
+      CACHE_ = Hash.new do |hsh, ky|
+        prim, dom = ky
+        hsh[ky] = Term.__send__ :new, prim, dom
+      end
+      
       def construct(prim, dom, cdren = nil, params = {})
-        #XXX fetch blueprint term object from cache, or construct and cache
+        bp = CACHE_[[prim, dom]]
         result = bp.clone
         result.provide_contents cdren, params
+        return result
       end
     end
     
@@ -23,7 +29,7 @@ module LibBracket
       @cstack = CanonicalizationStack.new
       init_primitive
       init_domain
-      init_value
+      init_after_domain
     end
     
     def initialize_copy(other)
@@ -36,10 +42,10 @@ module LibBracket
     def init_domain
     end
     
-    def init_primitive_value
+    def init_after_domain
     end
 
-    #override to set chash!
+    #override this method and set @chash!
     def provide_contents(cdren, params)
       @replacement_cookie = KnowledgeBase.virgin_cookie
       @children = cdren if cdren
@@ -91,7 +97,7 @@ module LibBracket
         if !current.canonical?
           begin
             @@must_not_replace = true #see beginning of method
-            term = current.canonicalization_stack.work do |msym|
+            term = current.cstack.work do |msym|
               current.__send__ msym
               #work will record a term result. this is now safe because we can be sure t_c_r? will
               #never be called inside, no replacement can have happened!
@@ -130,6 +136,8 @@ module LibBracket
   end
   
   module PrimitiveWithoutChildren
+    include Virtual
+    
     virtual :chash_realm
     virtual :chash_attributes
     
@@ -141,6 +149,8 @@ module LibBracket
       return [nil, false]
     end
     
+    #when overriding, provide all data needed for chash_attributes
+    #_before_ invoking this with super!
     def provide_contents(cdren, params)
       super
       @chash = CHash.new chash_realm, chash_attributes, nil

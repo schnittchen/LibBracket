@@ -14,8 +14,10 @@ module LibBracket
       if child.is_a? ScalarMultiple
         cdren = @children.clone
         cdren[key] = child.other
-        other = Term.construct @primitive, @domain, cdren
-        return ScalarMultiple.from_scalar_and_other child.scalar, other
+        inner = Term.construct @primitive, @domain, cdren
+        return inner.scalar_multiple(child.scalar) if inner.is_a? HasScalars
+        return inner * child.scalar if inner.is_a? IsMultipliable
+        raise "bam!"
       end
       return nil
     end

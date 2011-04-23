@@ -18,12 +18,12 @@ module LibBracket
       Term.construct One, dom
     end
     
-    def init_value
+    def init_after_domain
       super
-      extend ValueMethods
+      extend MethodsAfterDomain
     end
     
-    module ValueMethods
+    module MethodsAfterDomain
       def one?
         true
       end
@@ -100,6 +100,8 @@ module LibBracket
       end
     end
     
+    include OperatorBinding::ContextEnumerations
+    
     def render(rctxt)
       return super unless @children.length >= 2
       inner = @children.collect { |child| child.render MUL }
@@ -128,7 +130,7 @@ module LibBracket
       #for One.for_domain at IsMultipliable.included run time
       def const_missing(sym)
         return super unless sym == :ONE
-        const_set :ONE, One.new(self)
+        const_set :ONE, One.for_domain(self)
       end
     end
     

@@ -16,12 +16,12 @@ module LibBracket
       Term.construct Zero, dom
     end
     
-    def init_value
+    def init_after_domain
       super
-      extend ValueMethods
+      extend MethodsAfterDomain
     end
     
-    module ValueMethods
+    module MethodsAfterDomain
       def zero?
         true
       end
@@ -81,6 +81,8 @@ module LibBracket
         return Sum.from_children ChildrenArray.new.replace(new_children)
       end
     end
+    
+    include OperatorBinding::ContextEnumerations
     
     def render(rctxt)
       return super unless @children.length >= 2
