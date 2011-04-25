@@ -37,9 +37,7 @@ module LibBracket
       return nil if cdren == @children
       return InnerProduct.from_domain_and_children @domain, cdren
     end
-    
-    include OperatorBinding::ContextEnumerations
-    
+
     def render(rctxt)
       inner = [:left, :right].collect { |key| @children[key].render IN_BRACKETS }
       return "<#{inner.join ", "}>"

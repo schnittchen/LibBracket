@@ -40,4 +40,9 @@ module LibBracket
     
     binds_stronger_than MUL, PLUS
   end
+
+  #make ContextEnumerations constants available in LibBracket
+  OperatorBinding::ContextEnumerations.constants.each do |sym|
+    const_set sym, OperatorBinding::ContextEnumerations.const_get(sym)
+  end
 end

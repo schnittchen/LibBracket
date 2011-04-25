@@ -60,8 +60,6 @@ module LibBracket
       return nil
     end
     
-    include OperatorBinding::ContextEnumerations
-    
     def render(rctxt)
       inner = [other.render(MUL), scalar.render(MUL)]
       inner.reverse! if @domain.include? HasScalarsFromRight

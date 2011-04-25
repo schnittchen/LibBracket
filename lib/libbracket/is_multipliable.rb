@@ -100,8 +100,6 @@ module LibBracket
       end
     end
     
-    include OperatorBinding::ContextEnumerations
-    
     def render(rctxt)
       return super unless @children.length >= 2
       inner = @children.collect { |child| child.render MUL }

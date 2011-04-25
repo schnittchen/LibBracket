@@ -126,8 +126,6 @@ module LibBracket
       end
     end
     
-    include OperatorBinding::ContextEnumerations
-    
     virtual :render
     
     def to_s
