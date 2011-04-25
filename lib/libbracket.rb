@@ -2,7 +2,7 @@
 require 'libbracket/common'
 require 'libbracket/chash'
 require 'libbracket/knowledgebase'
-require 'libbracket/state_machine_stack'
+require 'libbracket/canonicalization_stack'
 
 require 'libbracket/term'
 
