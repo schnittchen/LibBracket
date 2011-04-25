@@ -5,6 +5,3 @@ require 'libbracket/knowledgebase'
 require 'libbracket/canonicalization_stack'
 
 require 'libbracket/term'
-
-#these depend on term:
-require 'libbracket/atom'
