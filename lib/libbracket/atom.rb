@@ -17,6 +17,9 @@ module LibBracket
       super
     end
     
+    #Construct an atom with domain and name, but also giving a primitive (which
+    #should include Atom). Thus it is possible to construct atoms with some
+    #special behaviour.
     def self.from_primitive_and_domain_and_name(prim, dom, name)
       #XXX registry as a safety feature
       Term.construct prim, dom, nil, { :name => name }

@@ -1,5 +1,4 @@
 module LibBracket
-  
   class Term
     include Virtual
     
@@ -13,6 +12,8 @@ module LibBracket
         hsh[ky] = Term.__send__ :new, prim, dom
       end
       
+      #Term objects are instantiated into a cache. Term#construct clones (see initialize_copy) from this cache
+      #and uses provide_contents to fill the missing data from cdren and params.
       def construct(prim, dom, cdren = nil, params = {})
         bp = CACHE_[[prim, dom]]
         result = bp.clone
@@ -21,6 +22,11 @@ module LibBracket
       end
     end
     
+    #Term objects are initialized with primitive and domain. Both are modules which are
+    #extended into the new term object, in that order. After that, init_primitive, init_domain
+    #and init_after_domain (in that order) have the chance for modifications before the term object is cached
+    #(see construct). They may push CanonicalizationFragment objects onto @cstack, the CanonicalizationStack
+    #object for the term.
     def initialize(prim, dom)
       @primitive, @domain = prim, dom
       extend dom
@@ -32,24 +38,33 @@ module LibBracket
       init_after_domain
     end
     
+    #clones the CanonicalizationStack @cstack from other
     def initialize_copy(other)
       @cstack = other.cstack.clone
     end
     
+    #Primitives may push CanonicalizationFragment objects onto @cstack in here (override this in your primitive module).
     def init_primitive
     end
     
+    #Domains may push CanonicalizationFragment objects onto @cstack in here (override this in your domain module).
     def init_domain
     end
     
+    #Primitives may push CanonicalizationFragment objects onto @cstack in here (override this in your primitive module).
+    #This would refine canonicalization of the term on top of the domain level.
     def init_after_domain
     end
 
-    #override this method and set @chash!
+    #Called by Term.construct after cloning a term object from the cache. Initializes
+    #@children and other cached data. Override this method in your primitive module
+    #to set @chash (don't forget to call super!).
     def provide_contents(cdren, params)
       @replacement_cookie = KnowledgeBase.virgin_cookie
       @children = cdren if cdren
     end
+    
+    ##make term objects comparable and good hash keys
     
     include Comparable
     alias_method :eql?, :== #used by hash lookup!
@@ -62,8 +77,13 @@ module LibBracket
       return @chash.hash
     end
     
+    #Used inside to_canonical_replaced? to determine if a term with canonical children
+    #is at a canonical state. Both PrimitiveWithChildren and PrimitiveWithoutChildren provide this.
     virtual :canonical?
-    #returns [newterm, replaced flag].
+    #Construct a new term like the current, but with all children replaced with the result
+    #of to_canonical_replaced?.
+    #returns [newterm, replaced] where replaced is true iff any to_canonical_replaced? call
+    #signaled that replacement happened.
     virtual :send_tcr_to_children
     
     def canonicalize_and_replace
@@ -71,12 +91,14 @@ module LibBracket
       return term
     end
     
-    @@must_not_replace = false #global flag to abort if logic error:
-    #steps on a canonicalization stack must never call to_canonical_replaced
+    #Canonicalization steps must not themselves call to_canonical_replaced?, otherwise the logic
+    #breaks. This global flag is used to detect this and report the problem.
+    @@must_not_replace = false
     
-    #return values: [term, true or false]
+    #Apply the canonicalization and replacement algorithm to term. Returns [either self or a new term, flag] where
+    #flag signals whether replacement has happened anywhere inside. This information is needed by the recursive algorith itself.
     def to_canonical_replaced?
-      #reason for this: to_canonical_replaced? might do KnowledgeBase replacements somewhere deep inside,
+      #detailed reason: to_canonical_replaced? might do KnowledgeBase replacements somewhere deep inside,
       #but this breaks with an optimization: we save terms produced by a canonicalization step on the
       #term-wise canonicalization stack. Terms saved there must not have gone through a KnowledgeBase
       #replacement.
@@ -111,7 +133,6 @@ module LibBracket
             next
           end
         end
-        
         
         cookie = current.replacement_cookie
         return [current, replaced]  if KnowledgeBase.superseeds_cookie cookie
