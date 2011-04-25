@@ -1,4 +1,3 @@
-#needed by term
 require 'libbracket/common'
 require 'libbracket/chash'
 require 'libbracket/knowledgebase'
