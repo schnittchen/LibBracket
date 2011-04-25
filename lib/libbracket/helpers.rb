@@ -45,4 +45,10 @@ module LibBracket
   OperatorBinding::ContextEnumerations.constants.each do |sym|
     const_set sym, OperatorBinding::ContextEnumerations.const_get(sym)
   end
+
+  def self.copy_constants_into_module(mod)
+    LibBracket.constants.each do |sym|
+      mod.const_set sym, LibBracket.const_get(sym)
+    end
+  end
 end
