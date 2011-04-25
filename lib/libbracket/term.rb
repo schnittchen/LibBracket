@@ -175,6 +175,33 @@ module LibBracket
       @chash = CHash.new chash_realm, chash_attributes, nil
     end
   end
+
+  #For children attributes that behave array-like
+  class ChildrenArray < Array
+    alias_method :ordered_values, :clone
+    
+    #XXX this is probably very incomplete.
+    
+    def +(*args)
+      result = super
+      return clone.replace result
+    end
+  end
+
+  #For children attributes that behave hash-like
+  class ChildrenHash < Hash
+    def ordered_values
+      keys.sort_by do |obj|
+        obj.to_s
+      end.collect { |ky| fetch ky }
+    end
+    
+    def map!
+      keys.each do |ky|
+        store ky, yield(fetch(ky))
+      end
+    end
+  end
   
   module PrimitiveWithChildren
     CHash.register_realm self
